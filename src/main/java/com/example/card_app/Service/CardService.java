@@ -6,12 +6,12 @@ import com.example.card_app.Entity.Card;
 import com.example.card_app.Entity.User;
 import com.example.card_app.Repository.CardRepository;
 import com.example.card_app.Repository.UserRepository;
+import com.example.card_app.utils.CardNumberGeneratorToLunh;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
@@ -25,6 +25,14 @@ public class CardService {
     @Autowired
     private CardRepository cardRepository;
     private UserRepository userRepository;
+    private EncryptionService encryptionService;
+
+    public CardService(UserRepository userRepository, EncryptionService encryptionService, CardRepository cardRepository) {
+        this.userRepository = userRepository;
+        this.encryptionService = encryptionService;
+        this.cardRepository=cardRepository;
+    }
+
 
     public BigDecimal getBalanceById(UUID id){
         Card card = cardRepository.findById(id).orElseThrow(()->new RuntimeException("карта не найдена"));
@@ -33,14 +41,14 @@ public class CardService {
 
     public BigDecimal getFullBalance(UUID uuid){
         User currentUser = userRepository.findById(uuid).orElseThrow(()->new EntityNotFoundException("User not found"));
-        List<Card> userCards = cardRepository.findAllCardsById(uuid);
+        List<Card> userCards = cardRepository.findAllCardsByUserId(uuid);
 
         return userCards.stream()
                 .map(Card::getBalance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public Card changeCardStatus(CardStatus newCardStatus, @RequestParam UUID id, UUID uuid) throws AccessDeniedException {
+    public Card changeCardStatus(CardStatus newCardStatus,UUID id, UUID uuid) throws AccessDeniedException {
         User currentUser = userRepository.findById(uuid).orElseThrow(()->new EntityNotFoundException("User not found"));
 
         Card currentCard = cardRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Card not found"));
@@ -61,22 +69,20 @@ public class CardService {
         return cardRepository.save(currentCard);
     }
 
-    public Card saveCard(Card card, UUID currentUserId) throws AccessDeniedException{
-        User currentUser = userRepository.findById(currentUserId).orElseThrow(()->new EntityNotFoundException("User not found!"));
-        if(card.getId()!= null){
-            Card existngCard = cardRepository.findById(card.getId()).orElseThrow(()-> new EntityNotFoundException("Card not found!"));
+    @Transactional          //в методе скрыт костыль
+    public Card createNewCard(User user){
+        Card newCard = new Card();
+        newCard.setUser(user);
 
-            if(currentUser.getRoles().equals(RoleType.USER) && !existngCard.getUser().getId().equals(currentUserId)){
-                throw new AccessDeniedException("We don`t change others cards");
-            }
-        } else{
-            card.setUser(currentUser);
-            card.setStatus(CardStatus.ACTIVE);
-            if(card.getBalance()==null){
-                card.setBalance(BigDecimal.ZERO);
-            }
-        }
-        return cardRepository.save(card);
+        UUID cardNumber = CardNumberGeneratorToLunh.generateCardNumber("4000", 16);
+
+        UUID encryptedCardNumber = encryptionService.encrypt(cardNumber);
+
+        newCard.setCardNumber(encryptedCardNumber);
+        newCard.setBalance(BigDecimal.ZERO);
+        newCard.setStatus(CardStatus.ACTIVE);
+
+        return cardRepository.save(newCard);
     }
 
     public void translationMoney(UUID id, UUID cardNumber1, UUID cardNumber2, BigDecimal amount) throws EntityNotFoundException{
@@ -100,28 +106,11 @@ public class CardService {
 
     @Transactional
     public void deleteCard(UUID currentCardId, UUID currentUserId)throws AccessDeniedException{
-
-        boolean exists = cardRepository.existsByIdAndUserd(currentCardId, currentUserId);
-
+        boolean exists = cardRepository.existsByIdAndUserId(currentCardId, currentUserId);
         if(!exists){
             throw new AccessDeniedException("You can delete only your own cards");
         }
         cardRepository.deleteByIdAndUserId(currentCardId, currentUserId);
-    }
-
-    public List<Card> findAllCards(UUID currentuuid, UUID requestedId) throws AccessDeniedException {
-
-        User currentUser = userRepository.findById(currentuuid).orElseThrow(()->new EntityNotFoundException("User not found"));
-
-        if(currentUser.getRoles().equals(RoleType.ADMIN)){
-            return cardRepository.findAllCardsById(requestedId);
-        }
-
-        if(!currentuuid.equals(requestedId)){
-            throw new AccessDeniedException("Вы можете просматривать только свои карты");
-        }
-
-        return cardRepository.findAllCardsById(currentuuid);
     }
 
     public Card findCardByNumber(UUID cardNumber, UUID currentid){
@@ -134,5 +123,4 @@ public class CardService {
         }
         return currentCard;
     }
-
 }

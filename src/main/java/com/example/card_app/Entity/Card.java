@@ -1,6 +1,7 @@
 package com.example.card_app.Entity;
 
 import com.example.card_app.Const.CardStatus;
+import com.example.card_app.utils.CardNumberConverter;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,6 +24,7 @@ public class Card {
     private UUID id;
 
     @Column(name = "cardNumber", nullable = false)
+    @Convert(converter = CardNumberConverter.class)
     private UUID cardNumber;
 
     @ManyToOne
