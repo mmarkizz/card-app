@@ -26,4 +26,8 @@ public class Role {
     public RoleType getName() {
         return name;
     }
+
+    public void setRole(RoleType name) {
+        this.name = name;
+    }
 }

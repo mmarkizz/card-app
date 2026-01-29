@@ -2,19 +2,25 @@ package com.example.card_app.Service;
 
 import com.example.card_app.Const.CardStatus;
 import com.example.card_app.Const.RoleType;
+import com.example.card_app.Const.TransactionStatus;
+import com.example.card_app.Const.TransactionType;
 import com.example.card_app.Entity.Card;
+import com.example.card_app.Entity.Transaction;
 import com.example.card_app.Entity.User;
 import com.example.card_app.Repository.CardRepository;
+import com.example.card_app.Repository.TransactionRepository;
 import com.example.card_app.Repository.UserRepository;
 import com.example.card_app.utils.CardNumberGeneratorToLunh;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +32,8 @@ public class CardService {
     private CardRepository cardRepository;
     private UserRepository userRepository;
     private EncryptionService encryptionService;
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     public CardService(UserRepository userRepository, EncryptionService encryptionService, CardRepository cardRepository) {
         this.userRepository = userRepository;
@@ -69,40 +77,68 @@ public class CardService {
         return cardRepository.save(currentCard);
     }
 
-    @Transactional          //в методе скрыт костыль
-    public Card createNewCard(User user){
-        Card newCard = new Card();
-        newCard.setUser(user);
+    @Transactional
+    public void transfer(UUID userId, UUID fromCardId, UUID toCardId, BigDecimal amount) throws AccessDeniedException {
 
-        UUID cardNumber = CardNumberGeneratorToLunh.generateCardNumber("4000", 16);
-
-        UUID encryptedCardNumber = encryptionService.encrypt(cardNumber);
-
-        newCard.setCardNumber(encryptedCardNumber);
-        newCard.setBalance(BigDecimal.ZERO);
-        newCard.setStatus(CardStatus.ACTIVE);
-
-        return cardRepository.save(newCard);
-    }
-
-    public void translationMoney(UUID id, UUID cardNumber1, UUID cardNumber2, BigDecimal amount) throws EntityNotFoundException{
-        User currentUser = userRepository.findById(id).orElseThrow(()-> new EntityNotFoundException("User not found"));
-
-        Card cardFrom = cardRepository.findByIdAndUserId(cardNumber1, id).orElseThrow(()-> new EntityNotFoundException("Source card not found"));
-
-        Card cardTo = cardRepository.findByIdAndUserId(cardNumber2, id).orElseThrow(()-> new EntityNotFoundException("Source card not found"));
-
-        if(cardFrom.getId().equals(cardTo.getId())){
-            throw new IllegalStateException("Нельзя переводить на ту же карту");
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
         }
 
-        if(cardFrom.getBalance().compareTo(amount)<0 || amount.compareTo(BigDecimal.ZERO)<=0){
-            throw new IllegalStateException("Ошибка перевода (Проверьте сумму перевода или баланс карты)");
+        Card from = cardRepository.findByIdAndUserId(fromCardId, userId)
+                .orElseThrow(() -> new AccessDeniedException("Source card not found"));
+
+        Card to = cardRepository.findById(toCardId)
+                .orElseThrow(() -> new EntityNotFoundException("Target card not found"));
+
+        if (from.getStatus() != CardStatus.ACTIVE || to.getStatus() != CardStatus.ACTIVE) {
+            throw new IllegalStateException("Card is not active");
         }
 
-        cardFrom.setBalance(cardFrom.getBalance().subtract(amount));
-        cardTo.setBalance(cardTo.getBalance().add(amount));
+        if (from.getBalance().compareTo(amount) < 0) {
+            throw new IllegalStateException("Insufficient funds");
+        }
+
+        from.setBalance(from.getBalance().subtract(amount));
+        to.setBalance(to.getBalance().add(amount));
     }
+
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    public void transferMoney(
+            UUID userId,
+            UUID fromCardId,
+            UUID toCardId,
+            BigDecimal amount) {
+
+        Transaction tx = new Transaction();
+
+        User currentUser = userRepository.findById(userId).orElseThrow(()->new EntityNotFoundException("User not found"));
+        tx.setUser(currentUser);
+
+        Card fromCard = cardRepository.findById(fromCardId).orElseThrow(()->new EntityNotFoundException("Card not found"));
+        tx.setFromCard(fromCard);
+
+        Card toCard = cardRepository.findById(toCardId).orElseThrow(()->new EntityNotFoundException("Card not found"));
+        tx.setToCard(toCard);
+
+        tx.setAmount(amount);
+        tx.setType(TransactionType.TRANSFER);
+        tx.setCreateAt(Instant.now());
+
+        try {
+            fromCard.setBalance(fromCard.getBalance().subtract(amount));
+            toCard.setBalance(toCard.getBalance().add(amount));
+
+            tx.setStatus(TransactionStatus.SUCCESS);
+        } catch (Exception ex){
+            tx.setStatus(TransactionStatus.FAILED);
+            throw ex;
+        }finally {
+            transactionRepository.save(tx);
+        }
+
+    }
+
 
     @Transactional
     public void deleteCard(UUID currentCardId, UUID currentUserId)throws AccessDeniedException{

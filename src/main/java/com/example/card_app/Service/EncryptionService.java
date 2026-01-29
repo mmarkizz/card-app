@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public interface EncryptionService {
 
-    UUID encrypt(UUID data);
+    String encrypt(String data);
 
-    UUID decrypt(UUID encryptedData);
+    String decrypt(String encryptedData);
 }

@@ -25,7 +25,7 @@ public class Card {
 
     @Column(name = "cardNumber", nullable = false)
     @Convert(converter = CardNumberConverter.class)
-    private UUID cardNumber;
+    private String cardNumber;
 
     @ManyToOne
     @JoinColumn(name = "user_cards", nullable = false)
@@ -81,11 +81,11 @@ public class Card {
         this.user = user;
     }
 
-    public UUID getCardNumber() {
+    public String getCardNumber() {
         return cardNumber;
     }
 
-    public void setCardNumber(UUID cardNumber) {
+    public void setCardNumber(String cardNumber) {
         this.cardNumber = cardNumber;
     }
 }

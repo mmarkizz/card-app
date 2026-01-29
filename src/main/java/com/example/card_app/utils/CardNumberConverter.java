@@ -3,38 +3,30 @@ package com.example.card_app.utils;
 import com.example.card_app.Service.EncryptionService;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Converter
-@Component
-public class CardNumberConverter implements AttributeConverter<UUID, UUID> {
+@RequiredArgsConstructor
+public class CardNumberConverter implements AttributeConverter<String, String> {
 
-    private static EncryptionService encryptionService;
+    private final EncryptionService encryptionService;
 
-    public static void setEncryptionService(EncryptionService encryptionService) {
-        CardNumberConverter.encryptionService = encryptionService;
+    @Override
+    public String convertToDatabaseColumn(String cardNumber) {
+        if (encryptionService == null) {
+            throw new IllegalStateException("EncryptionService not injected");
+        }
+        return encryptionService.encrypt(cardNumber);
     }
 
     @Override
-    public UUID convertToDatabaseColumn(UUID uuid) {
-        if(uuid==null){
-            return null;
-        }
-        if(encryptionService==null){
-            throw new IllegalStateException("Сервис не может произвести шифрование");
-        }
-        return encryptionService.encrypt(uuid);
-    }
-
-    @Override
-    public UUID convertToEntityAttribute(UUID uuid) {
-        if(uuid==null){
-            return null;
-        }
-        if(encryptionService==null){
-            throw new IllegalStateException("Сервис не может произвести шифрование");
-        }
-        return encryptionService.decrypt(uuid);
+    public String convertToEntityAttribute(String encrypted) {
+        if (encrypted == null) return null;
+        return encryptionService.decrypt(encrypted);
     }
 }
+
+

@@ -1,5 +1,6 @@
 package com.example.card_app.Entity;
 
+import com.example.card_app.Const.RoleType;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,13 +30,7 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Card> cards = new ArrayList<>();
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
+    private RoleType role = RoleType.USER;
 
     public User(UUID id, String gmail, String password) {
     }
@@ -64,12 +59,12 @@ public class User {
         this.password = password;
     }
 
-    public Set<Role> getRoles() {
-        return roles;
+    public RoleType getRoles() {
+        return role;
     }
 
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
+    public void setRoles(RoleType role) {
+        this.role = role;
     }
 
     public List<Card> getCards() {

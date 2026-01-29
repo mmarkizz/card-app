@@ -32,4 +32,24 @@ public class RefreshToken {
     public UUID getId() {
         return id;
     }
+
+    public User getUser(){
+        return user;
+    }
+    public void setUser(User user){}
+
+    public void setToken(String token){
+        this.token = token;
+    }
+
+    public String getToken(){
+        return token;
+    }
+
+    public void setExpiryDate(Instant expiryDate){
+        this.expiryDate = expiryDate;
+    }
+    public Instant getExpiryDate(){
+        return expiryDate;
+    }
 }
