@@ -40,7 +40,7 @@ public class AuthService {
         User newUser = new User();
         newUser.setGmail(req.getUsername());
         newUser.setPassword(passwordEncoder.encode(req.getPassword()));
-        newUser.setRoles(RoleType.USER);
+        newUser.setRole(RoleType.USER);
         userRepository.save(newUser);
     }
 
@@ -74,8 +74,7 @@ public class AuthService {
         refreshTokenRepository.findByToken(refreshToken).ifPresent(refreshTokenRepository::delete);
     }
 
-
-    //для оюновления токенов
+    //для обновления токенов
     @Transactional
     public TokenResponseDTO refresh(RefreshRequest ref) {
 
@@ -85,9 +84,12 @@ public class AuthService {
         }
 
         String username = jwtUtil.getUsernameByToken(token);
-        User user = userRepository.findByUsername(username).orElseThrow(()->new UsernameNotFoundException("User not found"));
+        // ИСПРАВЛЕНО: вместо gmail используем переменную username
+        User user = userRepository.findByGmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        RefreshToken stored = refreshTokenRepository.findByToken(token).orElseThrow(()->new BadCredentialsException("Token not found"));
+        RefreshToken stored = refreshTokenRepository.findByToken(token)
+                .orElseThrow(() -> new BadCredentialsException("Token not found"));
 
         if(stored.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(stored);
@@ -108,4 +110,6 @@ public class AuthService {
         newTokens.setRefreshToken(newRefresh.getToken());
         return newTokens;
     }
+
+
 }

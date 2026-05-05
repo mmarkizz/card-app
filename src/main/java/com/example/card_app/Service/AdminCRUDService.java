@@ -83,7 +83,7 @@ public class AdminCRUDService {
             if(statusFilter!=null && !statusFilter.isEmpty()){
                 return cardRepository.findAllByUserIdAndStatus(requestedId, CardStatus.valueOf(statusFilter), pageable);
             }
-            return cardRepository.findAllCardsByUserIdToPage(requestedId, pageable);
+            return cardRepository.findAllByUserId(requestedId, pageable);
         }
 
         if(!currentUserId.equals(requestedId)){
@@ -94,6 +94,6 @@ public class AdminCRUDService {
             return cardRepository.findAllByUserIdAndStatus(currentUserId, CardStatus.valueOf(statusFilter), pageable);
         }
 
-        return cardRepository.findAllCardsByUserIdToPage(currentUserId, pageable);
+        return cardRepository.findAllByUserId(currentUserId, pageable);
     }
 }

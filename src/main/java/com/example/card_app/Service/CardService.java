@@ -10,7 +10,6 @@ import com.example.card_app.Entity.User;
 import com.example.card_app.Repository.CardRepository;
 import com.example.card_app.Repository.TransactionRepository;
 import com.example.card_app.Repository.UserRepository;
-import com.example.card_app.utils.CardNumberGeneratorToLunh;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +21,7 @@ import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -49,7 +49,7 @@ public class CardService {
 
     public BigDecimal getFullBalance(UUID uuid){
         User currentUser = userRepository.findById(uuid).orElseThrow(()->new EntityNotFoundException("User not found"));
-        List<Card> userCards = cardRepository.findAllCardsByUserId(uuid);
+        List<Card> userCards = cardRepository.findAllByUserId(uuid);
 
         return userCards.stream()
                 .map(Card::getBalance)
@@ -149,13 +149,13 @@ public class CardService {
         cardRepository.deleteByIdAndUserId(currentCardId, currentUserId);
     }
 
-    public Card findCardByNumber(UUID cardNumber, UUID currentid){
+    public Optional<Card> findCardByNumber(UUID cardNumber, UUID currentid){
 
         User currentUser = userRepository.findById(currentid).orElseThrow(()->new EntityNotFoundException("User not found"));
-        Card currentCard = cardRepository.findByIdAndUserId(cardNumber, currentUser.getId()).orElseThrow(()->new EntityNotFoundException("Card not found!"));
+        Optional<Card> currentCard = Optional.ofNullable(cardRepository.findByIdAndUserId(cardNumber, currentUser.getId()).orElseThrow(() -> new EntityNotFoundException("Card not found!")));
 
         if (currentCard == null && currentUser.getRoles().equals(RoleType.ADMIN)) {
-            currentCard = cardRepository.findCardByNumber(cardNumber);
+            currentCard = cardRepository.findByCardNumber(String.valueOf(cardNumber));
         }
         return currentCard;
     }

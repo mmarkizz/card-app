@@ -15,28 +15,29 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CardRepository extends JpaRepository<Card, UUID> {
-//БЕЗОПАСНЫЙ ПЕРЕВОД
 
+    // БЕЗОПАСНЫЙ ПЕРЕВОД
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-Select c from Card c
-where c.id = :cardId and c.user.id = :userId
-""")
+    Select c from Card c
+    where c.id = :cardId and c.user.id = :userId
+    """)
     Optional<Card> findByIdAndUserIdForUpdate(
             @Param("cardId") UUID cardId,
             @Param("userId") UUID userId
-            );
+    );
 
-
-//методы для удаления
+    // методы для удаления
     boolean existsByIdAndUserId(UUID cardId, UUID userId);
     void deleteByIdAndUserId(UUID cardId, UUID userId);
+    Optional<Card> findByIdAndUserId(UUID cardId, UUID userId);
 
-    Optional<Card> findByIdAndUserId(UUID cardNumber, UUID id);
-    Card findCardByNumber(UUID cardNumber);
-    List<Card> findAllCardsByUserId(UUID id);
+    // ИСПРАВЛЕНО: изменено на cardNumber
+    Optional<Card> findByCardNumber(String cardNumber);
 
-    //пагинация и фильтры
-    Page<Card> findAllCardsByUserIdToPage(UUID userId, Pageable pageable);
-    Page<Card> findAllByUserIdAndStatus (UUID userId, CardStatus status, Pageable pageable);
+    List<Card> findAllByUserId(UUID userId);
+
+    // пагинация и фильтры
+    Page<Card> findAllByUserId(UUID userId, Pageable pageable);
+    Page<Card> findAllByUserIdAndStatus(UUID userId, CardStatus status, Pageable pageable);
 }

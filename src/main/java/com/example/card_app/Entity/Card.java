@@ -23,15 +23,15 @@ public class Card {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "cardNumber", nullable = false)
+    @Column(name = "card_number", nullable = false, unique = true)  // Исправлено
     @Convert(converter = CardNumberConverter.class)
     private String cardNumber;
 
     @ManyToOne
-    @JoinColumn(name = "user_cards", nullable = false)
+    @JoinColumn(name = "user_cards", nullable = false)  // Оставлено как в Liquibase
     private User user;
 
-    @Column(name = "expiryDate", nullable = false)
+    @Column(name = "expiry_date", nullable = false)  // Исправлено: expiry_date вместо expiryDate
     private int expiryDate;
 
     @Column(nullable = false)

@@ -30,6 +30,8 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Card> cards = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
     private RoleType role = RoleType.USER;
 
     public User(UUID id, String gmail, String password) {
@@ -63,7 +65,7 @@ public class User {
         return role;
     }
 
-    public void setRoles(RoleType role) {
+    public void setRole(RoleType role) {
         this.role = role;
     }
 

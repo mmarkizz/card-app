@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/bank_db
+    url: jdbc:postgresql://postgres:5432/bank_db
     username: bank_user
     password: bank_password
     driver-class-name: org.postgresql.Driver
@@ -15,4 +15,15 @@ spring:
 
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.yaml
+    change-log: classpath:db/changelog/db-changelog-master.yaml
+
+  logging:
+    level:
+      root: DEBUG
+      org.springframework.security: DEBUG
+      org.springframework.security.web: DEBUG
+      org.springframework.security.authentication: DEBUG
+      com.example.card_app: DEBUG
+      org.springframework.web: DEBUG
+      org.springframework.web.filter: DEBUG
+

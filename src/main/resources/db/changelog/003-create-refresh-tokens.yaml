@@ -11,26 +11,22 @@ databaseChangeLog:
                   type: uuid
                   constraints:
                     primaryKey: true
-
               - column:
                   name: token
                   type: text
                   constraints:
                     nullable: false
                     unique: true
-
               - column:
                   name: expiry_date
                   type: timestamp
                   constraints:
                     nullable: false
-
               - column:
                   name: user_id
                   type: uuid
                   constraints:
                     nullable: false
-
         - addForeignKeyConstraint:
             baseTableName: refresh_tokens
             baseColumnNames: user_id
